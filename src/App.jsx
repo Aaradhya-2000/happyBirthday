@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
+import song from "./img/a.mp3";
 
 // --- Import all your images ---
 import a1 from "./img/arpita1.jpeg";
@@ -29,6 +30,10 @@ function App() {
   const [isScrolling, setIsScrolling] = useState(false);
   const sectionRefs = useRef([]);
   const scrollTimeout = useRef(null);
+
+  // --- Audio state ---
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef(null);
 
   // --- Personalized messages for each photo ---
   const messages = [
@@ -104,6 +109,48 @@ function App() {
     setHearts(newHearts);
   }, []);
 
+  // --- Audio Control Functions ---
+  const toggleAudio = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play()
+          .then(() => setIsPlaying(true))
+          .catch((error) => {
+            console.log("Playback failed:", error);
+            // Auto-play was blocked, user needs to interact
+          });
+      }
+    }
+  };
+
+  // --- Auto-play on first user interaction ---
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      if (audioRef.current && !isPlaying) {
+        audioRef.current.play()
+          .then(() => setIsPlaying(true))
+          .catch(() => {});
+      }
+      // Remove listeners after first interaction
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+      document.removeEventListener('scroll', handleFirstInteraction);
+    };
+
+    document.addEventListener('click', handleFirstInteraction);
+    document.addEventListener('touchstart', handleFirstInteraction);
+    document.addEventListener('scroll', handleFirstInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+      document.removeEventListener('scroll', handleFirstInteraction);
+    };
+  }, [isPlaying]);
+
   // --- Smooth scroll to section ---
   const scrollToSection = (index) => {
     const target = sectionRefs.current[index];
@@ -117,6 +164,35 @@ function App() {
 
   return (
     <div className="App">
+      {/* --- Audio Element --- */}
+      <audio
+        ref={audioRef}
+        src={song}
+        loop
+        preload="auto"
+      />
+
+      {/* --- Music Control Button --- */}
+      <button 
+        className={`music-control ${isPlaying ? 'playing' : 'paused'}`}
+        onClick={toggleAudio}
+        aria-label={isPlaying ? 'Pause music' : 'Play music'}
+      >
+        <span className="music-icon">
+          {isPlaying ? '🔊' : '🔇'}
+        </span>
+        <span className="music-label">
+          {isPlaying ? 'Playing' : 'Play Music'}
+        </span>
+        {isPlaying && (
+          <span className="music-wave">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        )}
+      </button>
+
       {/* --- Floating Hearts Background --- */}
       <div className="hearts-container">
         {hearts.map((heart) => (
